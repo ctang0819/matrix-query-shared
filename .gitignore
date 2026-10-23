@@ -1,0 +1,7 @@
+node_modules/
+work/
+.DS_Store
+.cache/
+config/profiles.json
+credentials.env
+*.env

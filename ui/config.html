@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matrix Query · 连接设置</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet"> <!-- taste-skill-ignore: the dealt devtools face uses IBM Plex Mono for literal profile IDs and route keys. -->
+  <style>
+    :root {
+      color-scheme: light;
+      --ground: #f4f7f8;
+      --surface: #ffffff;
+      --raised: #f4f6f8;
+      --active: #ebedee;
+      --border: #e3e7e9;
+      --rule: #edf0f1;
+      --control: #c9d0d4;
+      --text: #182326;
+      --muted: #59676b;
+      --faint: #667478;
+      --accent: #1b6c80;
+      --accent-soft: #e7f0f2;
+      --positive: #1e7b4f;
+      --negative: #9f2028;
+      --warning: #92400e;
+      --pill-warning-bg: #fffbeb;
+      --pill-warning-ink: #78460b;
+      --radius-card: 8px;
+      --radius-control: 6px;
+      --radius-sheet: 16px;
+      --sidebar-width: 228px;
+      --gap: 20px;
+      --pad: 24px;
+      --control-height: 36px;
+      --font: "IBM Plex Sans", Inter, system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace; /* taste-skill-ignore: used only for IDs and literal endpoint keys. */
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--ground);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100svh; background: var(--ground); }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    .app-topbar {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--ground);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 14px; font-weight: 600; }
+    .brand-mark { width: 22px; height: 22px; flex: 0 0 auto; color: var(--accent); }
+    .top-meta { display: flex; align-items: center; gap: 18px; color: var(--muted); font-size: 12px; }
+    .top-meta span { white-space: nowrap; }
+    .menu-toggle { display: none; width: 36px; height: 36px; padding: 0; border: 1px solid var(--control); border-radius: var(--radius-control); background: transparent; }
+    .app-shell { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); gap: 0; height: calc(100svh - 48px); min-height: 620px; }
+    .sidebar { min-width: 0; padding: 16px 12px 20px 16px; background: var(--ground); display: flex; flex-direction: column; }
+    .side-title { margin: 2px 8px 10px; color: var(--muted); font-size: 13px; font-weight: 500; }
+    .profile-list { display: grid; gap: 2px; max-height: min(48vh, 420px); overflow: auto; padding-right: 2px; }
+    .profile-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      min-height: 48px;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .profile-item:hover { background: #edf1f2; }
+    .profile-item.active { background: var(--surface); }
+    .profile-item.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; background: var(--accent); }
+    .profile-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; }
+    .profile-url { display: block; max-width: 180px; margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .profile-id { color: var(--faint); font: 11px var(--mono); } /* taste-skill-ignore: the dealt devtools face uses mono for stable profile IDs. */
+    .add-profile { align-self: flex-start; margin: 8px 0 0 4px; border: 0; background: transparent; color: var(--muted); font-size: 13px; padding: 6px 8px; cursor: pointer; }
+    .add-profile:hover { color: var(--text); }
+    .route-summary { margin-top: auto; padding: 16px 8px 0; border-top: 1px solid var(--border); }
+    .route-summary-title { margin: 0 0 10px; color: var(--muted); font-size: 13px; font-weight: 500; }
+    .route-summary-row { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 13px; }
+    .route-summary-row span:first-child { color: var(--muted); }
+    .route-summary-row span:last-child { max-width: 112px; overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+    .workspace { min-width: 0; min-height: 0; margin: 0 8px 8px 0; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sheet); background: var(--surface); }
+    .workspace-inner { max-width: 1280px; margin: 0 auto; padding: 22px var(--pad) 30px; }
+    .page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-bottom: 18px; }
+    .heading-copy { min-width: 0; }
+    .heading-overline { margin-bottom: 4px; color: var(--muted); font-size: 13px; }
+    h1 { margin: 0; font-size: 22px; line-height: 1.25; font-weight: 500; }
+    .heading-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 0 auto; }
+    .button { min-height: var(--control-height); padding: 0 12px; border: 1px solid var(--control); border-radius: var(--radius-control); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; }
+    .button:hover { background: var(--raised); }
+    .button:focus-visible, input:focus-visible, select:focus-visible, .tab:focus-visible, .profile-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .button.primary { border-color: var(--text); background: var(--text); color: white; }
+    .button.primary:hover { background: #303638; }
+    .button.text { border-color: transparent; background: transparent; color: var(--muted); }
+    .button.text:hover { color: var(--text); background: var(--raised); }
+    .button:disabled { color: #737b7e; background: #eef0f1; cursor: not-allowed; }
+    .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--border); margin: 0 0 4px; overflow-x: auto; }
+    .tab { position: relative; min-height: 42px; padding: 0 2px; border: 0; background: transparent; color: var(--muted); font-size: 13px; white-space: nowrap; cursor: pointer; }
+    .tab:hover { color: var(--text); }
+    .tab[aria-selected="true"] { color: var(--text); font-weight: 600; }
+    .tab[aria-selected="true"]::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; content: ""; background: var(--accent); }
+    .view { display: none; }
+    .view.active { display: block; }
+    .settings-row { display: grid; grid-template-columns: minmax(230px, 0.82fr) minmax(0, 1.18fr); gap: 24px; padding: 23px 0; border-bottom: 1px solid var(--rule); }
+    .settings-row:last-child { border-bottom: 0; }
+    .row-copy { padding-top: 5px; }
+    .row-copy h2 { margin: 0; font-size: 15px; font-weight: 500; }
+    .row-copy p { max-width: 330px; margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .row-panel { min-width: 0; padding: 16px; border-radius: 8px; background: #f8f9fa; }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 15px 16px; }
+    .field { min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    .field > label { display: block; margin: 0 0 6px; color: var(--text); font-size: 13px; font-weight: 500; }
+    .field .hint { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    input, select, textarea { display: block; width: 100%; min-height: 38px; padding: 7px 10px; border: 1px solid var(--control); border-radius: var(--radius-control); background: var(--surface); color: var(--text); font: 14px var(--font); }
+    input[type="number"] { font-variant-numeric: tabular-nums; }
+    input[type="password"] { letter-spacing: 0; }
+    input::placeholder { color: var(--faint); }
+    select[multiple] { min-height: 146px; padding: 4px; }
+    select[multiple] option { padding: 5px 7px; border-radius: 4px; }
+    select[multiple] option:checked { background-color: var(--active); color: var(--text); }
+    .split { display: grid; grid-template-columns: minmax(0,1fr) 122px; gap: 10px; }
+    .toggle-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; }
+    .toggle-line label { font-size: 13px; font-weight: 500; }
+    .toggle { appearance: none; position: relative; width: 34px; height: 20px; min-height: 20px; padding: 0; border: 1px solid #929a9d; border-radius: 999px; background: #e8ebec; cursor: pointer; transition: background-color 120ms ease; }
+    .toggle::after { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border: 1px solid #687477; border-radius: 50%; background: white; content: ""; transition: transform 120ms ease; }
+    .toggle:checked { border-color: var(--text); background: var(--text); }
+    .toggle:checked::after { transform: translateX(14px); border-color: white; }
+    .cache-list { display: grid; gap: 0; }
+    .cache-row { display: grid; grid-template-columns: minmax(0,1fr) 118px 34px; align-items: center; gap: 12px; min-height: 50px; border-bottom: 1px solid var(--rule); }
+    .cache-row:last-child { border-bottom: 0; }
+    .cache-kind { font-size: 13px; font-weight: 500; }
+    .cache-ttl { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .cache-ttl input { width: 72px; min-height: 32px; padding: 5px 7px; font-variant-numeric: tabular-nums; text-align: right; }
+    .route-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .route-table th { padding: 0 8px 9px; color: var(--muted); font-size: 13px; font-weight: 500; text-align: left; }
+    .route-table td { height: 48px; padding: 5px 8px; border-top: 1px solid var(--rule); font-size: 13px; }
+    .route-table td:first-child { width: 130px; color: var(--muted); }
+    .route-table .route-profile { width: 42%; }
+    .route-table select { min-height: 34px; font-size: 13px; }
+    .route-table code, code { font-family: var(--mono); font-size: 12px; } /* taste-skill-ignore: route keys and endpoint identifiers use the dealt technical face. */
+    .route-domain { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+    .notice { display: none; margin: 15px 0 0; padding: 9px 11px; border: 1px solid #e8c886; border-radius: 6px; background: var(--pill-warning-bg); color: var(--pill-warning-ink); font-size: 13px; line-height: 1.4; }
+    .notice.visible { display: block; }
+    .status-line { min-height: 20px; color: var(--muted); font-size: 13px; }
+    .status-line.error { color: var(--negative); }
+    .status-line.success { color: var(--positive); }
+    .bottom-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .bottom-actions-right { display: flex; gap: 8px; }
+    .delete-link { color: var(--negative); }
+    .button.delete-link:disabled { color: #273336; }
+    .delete-link:hover { background: #fff3f2; }
+    @media (max-width: 920px) {
+      :root { --sidebar-width: 205px; --pad: 19px; }
+      .settings-row { grid-template-columns: minmax(190px, 0.72fr) minmax(0,1.28fr); gap: 18px; }
+    }
+    @media (max-width: 680px) {
+      .app-topbar { padding: 0 16px; }
+      .menu-toggle { display: inline-grid; place-items: center; }
+      .brand { margin-right: auto; margin-left: 9px; }
+      .top-meta { gap: 8px; }
+      .top-meta .meta-secondary { display: none; }
+      .app-shell { position: relative; display: block; height: calc(100dvh - 48px); min-height: 0; }
+      .sidebar { display: flex; height: auto; padding: 8px 10px 6px; overflow: hidden; }
+      .sidebar.drawer-open { position: absolute; z-index: 5; top: 0; right: 0; left: 0; max-height: 70vh; overflow: auto; border-bottom: 1px solid var(--border); background: var(--ground); }
+      .side-title, .route-summary, .add-profile { display: none; }
+      .profile-list { display: flex; max-height: none; gap: 7px; overflow-x: auto; padding-bottom: 2px; }
+      .profile-item { min-width: 142px; min-height: 46px; padding: 6px 9px; background: transparent; }
+      .profile-item.active { background: var(--surface); }
+      .profile-url { max-width: 120px; }
+      .workspace { height: calc(100% - 62px); margin: 0 5px 5px; border-radius: 14px; }
+      .workspace-inner { padding: 15px 15px 24px; }
+      .page-heading { align-items: center; padding-bottom: 13px; }
+      h1 { font-size: 21px; }
+      .heading-subtitle { max-width: 34ch; font-size: 12px; }
+      .heading-actions { gap: 4px; }
+      .button { min-height: 40px; padding: 0 9px; font-size: 12px; }
+      .tabs { gap: 18px; }
+      .tab { min-height: 44px; }
+      .settings-row { grid-template-columns: minmax(0,1fr); gap: 12px; padding: 18px 0; }
+      .row-copy { padding-top: 0; }
+      .row-panel { padding: 13px; }
+      .fields { grid-template-columns: minmax(0,1fr); gap: 13px; }
+      .field.full { grid-column: auto; }
+      .cache-row { grid-template-columns: minmax(0,1fr) 112px 34px; gap: 7px; }
+      .cache-ttl { gap: 4px; font-size: 11px; }
+      .cache-ttl input { width: 55px; }
+      .bottom-actions { align-items: flex-start; flex-direction: column; }
+      .bottom-actions-right { width: 100%; justify-content: flex-end; }
+      .route-table th:first-child, .route-table td:first-child { width: 74px; }
+      .route-table .route-domain { display: none; }
+      .route-table .route-profile { width: auto; }
+      .route-table td { height: 54px; padding: 5px 3px; }
+      .route-table th { padding: 0 3px 8px; }
+      select[multiple] { min-height: 150px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-topbar">
+    <button id="menuToggle" class="menu-toggle" aria-label="显示连接列表" aria-expanded="false"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button>
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6.5 7.5l4.2 8M17.5 7.5l-4.2 8"/>
+      </svg>
+      <span>Matrix Query</span>
+    </div>
+    <div class="top-meta"><span id="connectionCount">4 个连接</span><span class="meta-secondary">3 个插件入口</span></div>
+  </header>
+  <div class="app-shell">
+    <aside id="sidebar" class="sidebar" aria-label="Matrix 连接">
+      <div class="side-title">连接 profile</div>
+      <div id="profileList" class="profile-list"></div>
+      <button id="add" class="add-profile">＋ 添加连接</button>
+    </aside>
+    <main class="workspace">
+      <div class="workspace-inner">
+        <div class="page-heading">
+          <div class="heading-copy">
+            <div class="heading-overline">Matrix 连接 / <span id="headingProfile">—</span></div> <!-- taste-skill-ignore: this is the object's breadcrumb and scope, not a decorative eyebrow. -->
+            <h1 id="formTitle">连接设置</h1>
+            <p id="headingSubtitle" class="heading-subtitle">管理服务地址、运行目标与本地缓存</p>
+          </div>
+          <div class="heading-actions">
+            <button id="test" class="button">测试连接</button>
+            <button id="saveTop" class="button primary">保存</button>
+          </div>
+        </div>
+        <nav id="tabs" class="tabs" role="tablist" aria-label="连接设置区域">
+          <button class="tab" role="tab" data-view="connection" aria-selected="true">连接</button>
+          <button class="tab" role="tab" data-view="cache" aria-selected="false">缓存</button>
+        </nav>
+        <div id="fields"></div>
+        <div class="bottom-actions">
+          <div id="status" class="status-line" role="status" aria-live="polite"></div>
+          <div class="bottom-actions-right">
+            <button id="remove" class="button text delete-link">删除连接</button>
+            <button id="saveBottom" class="button primary">保存</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    const state = { profiles: [], slots: {}, current: "", view: "connection", options: { environments: [], instances: [], databases: [] } };
+    const fields = document.querySelector("#fields");
+    const statusEl = document.querySelector("#status");
+    const TITLES = {
+      connection: ["连接", "配置服务地址、账号和网络代理"],
+      cache: ["缓存", "永久保存元数据，需要时手动刷新全部实例"],
+    };
+    const html = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+    const current = () => state.profiles.find((item) => item.id === state.current);
+    function setStatus(text, kind = "") { statusEl.textContent = text; statusEl.className = `status-line ${kind}`; }
+    function field(key, label, value, type = "text", hint = "") {
+      return `<div class="field"><label for="f-${key}">${label}</label><input id="f-${key}" data-key="${key}" type="${type}" value="${html(value)}">${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
+    }
+    function selectField(key, label, value, options, hint = "", multiple = false) {
+      const selected = new Set((multiple ? value || [] : [value]).map(String));
+      const choices = options.map((item) => {
+        const optionValue = String(item.value ?? "");
+        return `<option value="${html(optionValue)}" ${selected.has(optionValue) ? "selected" : ""}>${html(item.label ?? optionValue)}</option>`;
+      }).join("");
+      return `<div class="field"><label for="f-${key}">${label}</label><select id="f-${key}" data-key="${key}" ${multiple ? "multiple size=" + Math.min(Math.max(options.length, 3), 6) : ""}>${multiple ? "" : `<option value="">请选择</option>`}${choices}</select>${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
+    }
+    const optionList = (items, valueKeys, labelKeys) => items.map((item) => {
+      if (typeof item === "string") return { value: item, label: item };
+      const value = valueKeys.map((key) => item?.[key]).find((entry) => entry != null && entry !== "") ?? "";
+      const label = labelKeys.map((key) => item?.[key]).find((entry) => entry != null && entry !== "") ?? value;
+      return { value, label: String(label) };
+    }).filter((item) => item.value !== "");
+    function instanceOptions(items, includeIds = false) {
+      return items.map((item) => {
+        const value = String(item.InstanceId ?? item.id ?? "");
+        const name = item.InstanceName || item.name || value;
+        return { value, label: includeIds ? `${name}（ID：${value}）` : name };
+      }).filter((item) => item.value);
+    }
+    function environmentOptions(items, currentValue) {
+      const options = items.map((item) => ({
+        value: item.envCode,
+        label: item.envName ? `${item.envName}（${item.envCode}）` : item.envCode,
+      })).filter((item) => item.value);
+      if (currentValue && !options.some((item) => item.value === currentValue)) {
+        options.unshift({ value: currentValue, label: `${currentValue}（当前值未匹配）` });
+      }
+      return options;
+    }
+    function renderList() {
+      document.querySelector("#profileList").innerHTML = state.profiles.map((p) => `
+        <button class="profile-item ${p.id === state.current ? "active" : ""}" data-profile="${html(p.id)}" aria-current="${p.id === state.current ? "page" : "false"}">
+          <span><span class="profile-name">${html(p.name || p.id)}</span><span class="profile-url">${html(p.baseUrl || "未设置服务地址")}</span></span>
+          <code class="profile-id">${html(p.id)}</code>
+        </button>`).join("");
+      document.querySelectorAll("[data-profile]").forEach((button) => button.onclick = async () => {
+        sync(); state.current = button.dataset.profile; state.options = { environments: [], instances: [], databases: [] }; render();
+        document.querySelector("#sidebar").classList.remove("drawer-open");
+        document.querySelector("#menuToggle").setAttribute("aria-expanded", "false");
+      });
+      document.querySelector("#connectionCount").textContent = `${state.profiles.length} 个连接`;
+    }
+    function settingsRow(title, description, content) {
+      return `<section class="settings-row"><div class="row-copy"><h2>${title}</h2><p>${description}</p></div><div class="row-panel">${content}</div></section>`;
+    }
+    function renderConnection(p) {
+      const account = p.credentials || {};
+      const proxy = p.proxy || {};
+      return [
+        settingsRow("服务地址", "当前 profile 连接的 Matrix 服务。医院名称用于自动路由。", `<div class="fields"><div class="field full"><label for="f-name">连接名称</label><input id="f-name" data-key="name" value="${html(p.name)}"></div><div class="field full"><label for="f-hospital">医院名称</label><input id="f-hospital" data-key="hospital" value="${html(p.hospital || p.name || p.id)}"><span class="hint">查询时传入 hospital，系统会自动选择该 profile。</span></div><div class="field full"><label for="f-baseUrl">Matrix 服务地址</label><input id="f-baseUrl" data-key="baseUrl" type="url" value="${html(p.baseUrl)}"></div><div class="field full"><label for="f-cacheDir">缓存目录</label><input id="f-cacheDir" data-key="cacheDir" value="${html(p.cacheDir)}"></div></div>`),
+        settingsRow("账号", account.hasPassword ? "密码已保存在本机；留空不会替换已保存密码。" : "设置用于 Matrix 登录的账号和密码。", `<div class="fields"><div class="field"><label for="f-credentials.username">用户名</label><input id="f-credentials.username" data-key="credentials.username" value="${html(account.username)}"></div><div class="field"><label for="f-credentials.password">密码</label><input id="f-credentials.password" data-key="credentials.password" type="password" autocomplete="new-password"></div></div>`),
+        settingsRow("网络代理", "代理为可选项；修改后测试连接以确认当前地址可达。", `<div class="fields"><div class="field full"><div class="toggle-line"><label for="f-proxy.enabled">使用代理</label><input class="toggle" id="f-proxy.enabled" type="checkbox" ${proxy.host ? "checked" : ""} aria-label="使用代理"></div></div><div class="field"><label for="f-proxy.scheme">代理协议</label><select id="f-proxy.scheme" data-key="proxy.scheme"><option value="socks5h">SOCKS5H</option><option value="socks5">SOCKS5</option><option value="http">HTTP</option><option value="https">HTTPS</option></select></div><div class="field"><label for="f-proxy.host">代理地址</label><input id="f-proxy.host" data-key="proxy.host" value="${html(proxy.host)}"></div><div class="field"><label for="f-proxy.port">代理端口</label><input id="f-proxy.port" data-key="proxy.port" type="number" min="1" max="65535" value="${html(proxy.port || "")}"></div><div class="field"><label for="f-proxy.username">代理用户名</label><input id="f-proxy.username" data-key="proxy.username" value="${html(proxy.username)}"></div><div class="field"><label for="f-proxy.password">代理密码</label><input id="f-proxy.password" data-key="proxy.password" type="password" autocomplete="new-password"></div></div>`),
+      ].join("");
+    }
+    function renderCache(p) {
+      return [
+        settingsRow("元数据缓存", "元数据永久保存到本地。刷新会重新读取当前环境下所有可见实例、数据库和表。", `<button id="refreshMetadata" class="button primary">全量刷新元数据</button><p class="hint">刷新期间会访问 Matrix，完成后显示统计结果。</p>`),
+        settingsRow("登录会话", "登录会话独立保存；过期后会重新认证。", `<div class="fields"><div class="field"><label for="f-sessionTtlHours">会话时长（小时）</label><input id="f-sessionTtlHours" type="number" min="0" step="1" data-key="sessionTtlHours" value="${html(p.sessionTtlHours ?? 12)}"><span class="hint">设为 0 表示不过期</span></div></div>`),
+      ].join("");
+    }
+    function render() {
+      renderList();
+      const p = current();
+      if (!p) return;
+      document.querySelector("#headingProfile").textContent = p.name || p.id;
+      document.querySelector("#formTitle").textContent = TITLES[state.view][0];
+      document.querySelector("#headingSubtitle").textContent = TITLES[state.view][1];
+      document.querySelector("#remove").disabled = ["hnxk", "wz", "zy"].includes(p.id);
+      document.querySelectorAll(".tab").forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.view === state.view)));
+      if (state.view === "connection") fields.innerHTML = renderConnection(p);
+      else if (state.view === "cache") fields.innerHTML = renderCache(p);
+      const refreshMetadata = document.querySelector("#refreshMetadata");
+      if (refreshMetadata) refreshMetadata.onclick = async () => {
+        try {
+          refreshMetadata.disabled = true; setStatus("正在全量刷新元数据…");
+          const response = await fetch("/api/cache/refresh", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ profileId: p.id }) });
+          const result = await response.json(); if (!response.ok) throw new Error(result.error || "全量刷新失败。");
+          const summary = result.summary || {}; setStatus(`刷新完成：${summary.instances || 0} 个实例、${summary.databases || 0} 个数据库、${summary.tables || 0} 张表。`, "success");
+        } catch (error) { setStatus(error.message, "error"); } finally { refreshMetadata.disabled = false; }
+      };
+      const proxyScheme = document.querySelector("#f-proxy\\.scheme");
+      if (proxyScheme) proxyScheme.value = p.proxy?.scheme || "socks5h";
+      const cluster = document.querySelector("#f-clusterProperty");
+      if (cluster) cluster.value = p.clusterProperty || "mysql";
+      const enabled = document.querySelector("#f-proxy\\.enabled");
+      if (enabled) enabled.onchange = () => document.querySelectorAll('[data-key^="proxy."]').forEach((input) => input.disabled = !enabled.checked);
+      if (enabled) { enabled.dispatchEvent(new Event("change")); document.querySelectorAll('[data-key^="proxy."]').forEach((input) => { input.disabled = !enabled.checked; }); }
+      fields.querySelectorAll("[data-key]").forEach((input) => {
+        input.addEventListener("input", sync);
+        input.addEventListener("change", async () => {
+          sync();
+        });
+      });
+    }
+    function sync() {
+      const p = current();
+      if (!p) return;
+      fields.querySelectorAll("[data-key]").forEach((input) => {
+        const parts = input.dataset.key.split(".");
+        let target = p;
+        for (const part of parts.slice(0, -1)) target = target[part] ||= {};
+        const key = parts.at(-1);
+        if (key === "password" && !input.value) return;
+        if (input.multiple) { target[key] = [...input.selectedOptions].map((option) => option.value); return; }
+        if (input.type === "checkbox") target[key] = input.checked;
+        else if (input.type === "number") target[key] = input.value === "" ? "" : Number(input.value);
+        else target[key] = input.value;
+      });
+    }
+    async function save() {
+      sync();
+      const response = await fetch("/api/config", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ profiles: state.profiles, slots: state.slots }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "保存失败。");
+      await load();
+      setStatus("已保存。重启对应的 Matrix 插件后生效。", "success");
+    }
+    async function load() {
+      const response = await fetch("/api/config");
+      const data = await response.json();
+      state.profiles = data.profiles; state.slots = data.slots;
+      if (!state.current || !state.profiles.some((p) => p.id === state.current)) state.current = state.profiles[0]?.id || "";
+      render();
+    }
+    document.querySelectorAll(".tab").forEach((tab) => tab.onclick = () => { sync(); state.view = tab.dataset.view; render(); });
+    document.querySelector("#menuToggle").onclick = () => {
+      const sidebar = document.querySelector("#sidebar"); const open = sidebar.classList.toggle("drawer-open");
+      document.querySelector("#menuToggle").setAttribute("aria-expanded", String(open));
+    };
+    document.querySelector("#add").onclick = () => {
+      sync(); let n = 1; while (state.profiles.some((p) => p.id === `connection-${n}`)) n++;
+      const id = `connection-${n}`;
+      state.profiles.push({ id, name: `新连接 ${n}`, hospital: `新医院 ${n}`, baseUrl: "", envCode: "", credentials: { username: "", password: "" }, proxy: {}, cacheDir: "", sessionTtlHours: 12, clusterProperty: "mysql", locateInstances: [] });
+      state.current = id; state.view = "connection"; state.options = { environments: [], instances: [], databases: [] }; render();
+      document.querySelector("#f-baseUrl").value = ""; document.querySelector("#f-name").focus();
+    };
+    document.querySelector("#remove").onclick = () => {
+      const p = current(); if (!p || ["hnxk", "wz", "zy"].includes(p.id) || !confirm(`确定删除连接“${p.name}”吗？`)) return;
+      state.profiles = state.profiles.filter((item) => item.id !== p.id);
+      state.current = state.profiles[0]?.id || ""; state.options = { environments: [], instances: [], databases: [] }; render();
+    };
+    for (const id of ["saveTop", "saveBottom"]) document.querySelector(`#${id}`).onclick = async () => { try { await save(); } catch (error) { setStatus(error.message, "error"); } };
+    document.querySelector("#test").onclick = async () => {
+      try {
+        sync(); await save();
+        const response = await fetch("/api/test", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ profileId: state.current }) });
+        const result = await response.json(); if (!response.ok) throw new Error(result.error || "连接失败。");
+        setStatus(`连接成功：${result.user}`, "success");
+      } catch (error) { setStatus(error.message, "error"); }
+    };
+    load().catch((error) => setStatus(error.message, "error"));
+  </script>
+</body>
+</html>
